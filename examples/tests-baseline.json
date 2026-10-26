@@ -1,0 +1,5 @@
+{
+  "version": 1, "run_id": "tests-before",
+  "jobs": [{"id": "unit", "status": "passed", "duration_ms": 1000,
+    "tests": [{"id": "checkout", "status": "passed"}, {"id": "legacy", "status": "passed"}]}]
+}

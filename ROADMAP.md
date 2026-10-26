@@ -4,9 +4,10 @@ Completed milestone 1: strictly validated local synthetic run bundles, stable jo
 
 Completed milestone 2: configurable absolute/percentage duration thresholds, strict boundary rules, zero-baseline handling, visible effective settings and retained raw deltas, with API/CLI regression tests.
 
+Completed milestone 3: optional structured test cases, stable per-job matching, explicit missing-versus-empty coverage, case status transitions and summaries, examples and compatibility tests.
+
 Remaining candidate work, to scope against genuine intended use before estimating hours:
 
-- Structured test-case result comparison with explicit handling of missing, skipped and renamed cases.
 - Bounded synthetic log excerpts and failure grouping without executing or trusting log content.
 - Local run history and trend reports with careful limits on claims about flaky jobs.
 - Saved comparison profiles, readable reports, installation packaging and larger-workload checks.
