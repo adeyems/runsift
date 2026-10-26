@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "run_id": "synthetic-baseline",
+  "jobs": [
+    {"id": "unit", "status": "passed", "duration_ms": 1000},
+    {"id": "lint", "status": "passed", "duration_ms": 400},
+    {"id": "legacy", "status": "skipped", "duration_ms": 0}
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "run_id": "synthetic-candidate",
+  "jobs": [
+    {"id": "unit", "status": "failed", "duration_ms": 1500},
+    {"id": "lint", "status": "passed", "duration_ms": 400},
+    {"id": "integration", "status": "passed", "duration_ms": 2000}
+  ]
+}
