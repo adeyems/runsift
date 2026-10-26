@@ -27,12 +27,27 @@ Jobs are finished observations, with status `passed`, `failed`, `skipped` or `ca
 
 Jobs match by ID, independent of input order. Results are sorted by ID and include status/duration on each side, signed duration delta, and added/removed/changed/unchanged classification. Added/removed jobs have null values for their absent side and no duration delta.
 
-A `status_regression` means a matched job went from passed to any non-passed state, including skipped or cancelled. A `status_recovery` is the reverse; neither label proves a code defect was introduced or fixed. Added failures and removed jobs remain visible but are not classified as matched-job regressions. Timing changes are exact, with no tolerance or statistical significance claim. Job durations are not summed into run wall time because jobs may overlap.
+A `status_regression` means a matched job went from passed to any non-passed state, including skipped or cancelled. A `status_recovery` is the reverse; neither label proves a code defect was introduced or fixed. Added failures and removed jobs remain visible but are not classified as matched-job regressions. Timing comparison is exact by default, with optional tolerances below and no statistical significance claim. Job durations are not summed into run wall time because jobs may overlap.
 
-JSON reports go to stdout. Exit **0** means no job status/duration or membership differences, **1** means any difference, and **2** means invalid input or an input-file error (JSON on stderr). Standard argparse usage errors are text on stderr with exit 2. Identical failing runs still match: equality does not mean CI passed. Files are read only, never modified.
+JSON reports go to stdout. Exit **0** means no job status/membership differences or duration changes exceeding the configured tolerances, **1** means at least one such difference, and **2** means invalid input or an input-file error (JSON on stderr). Standard argparse usage errors are text on stderr with exit 2. Identical failing runs still match: equality does not mean CI passed. Files are read only, never modified.
+
+## Duration thresholds
+
+```sh
+python3 runsift.py examples/baseline.json examples/candidate.json \
+  --duration-threshold-ms 100 --duration-threshold-percent 10
+```
+
+Both flags default to zero. Milliseconds must be an integer from 0 to 604800000; percentage must be an integer from 0 to 10000. Fractional percentages, negative values and booleans in the Python API are unsupported.
+
+For each matched job, let `delta = candidate_ms - baseline_ms`. A duration change counts only when **both** `abs(delta) > threshold_ms` and `abs(delta) * 100 > baseline_ms * threshold_percent`. The strict comparisons mean equality stays within tolerance. This applies symmetrically to faster and slower jobs, using the baseline as the percentage denominator; reversing the comparison can therefore change the result. Integer cross-multiplication avoids floating-point rounding.
+
+For a 1000 ms baseline, 1100 ms is within a 10% tolerance; 1101 ms exceeds it. With a zero baseline, the percentage allowance is zero, so any nonzero delta exceeds the percentage condition; the absolute threshold can still suppress it. Zero-to-zero is unchanged.
+
+Reports retain raw duration values and signed deltas. `duration_change_exceeds_thresholds` marks a counted timing change; `duration_change_ignored` marks a nonzero delta within tolerance. Both fields are null for unmatched jobs. Effective settings appear in `comparison_rules`. `changed`/`unchanged`, summary counts and exit codes all use these same rules. Status changes and added/removed jobs are never suppressed. The example above still exits 1 because its status and membership changes remain.
 
 ## Limits and safety
 
 Use made-up job IDs and data only. Reports include IDs, statuses and timing values; they are not a redaction system. No logs, environment variables, credentials, real customer data or personal data belong in these bundles. The tool makes no network calls, executes no jobs and downloads no artifacts. It has no direct GitHub Actions or other provider integration.
 
-Milestone 1 has no test-case/log parsing, history/trends, duration thresholds, saved rules or installable package. It cannot diagnose why a job failed or establish flakiness from two observations. See `ROADMAP.md` for candidate work. MIT licensed; no production-readiness or programme-acceptance claim.
+The tool has no test-case/log parsing, history/trends, saved rules or installable package yet. It cannot diagnose why a job failed or establish flakiness from two observations. Thresholds are user-selected tolerances, not evidence that a timing difference is statistically meaningful. See `ROADMAP.md` for candidate work. MIT licensed; no production-readiness or programme-acceptance claim.

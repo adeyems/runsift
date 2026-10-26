@@ -64,7 +64,15 @@ def load(path):
     return validate(bundle)
 
 
-def compare(baseline, candidate):
+def validate_thresholds(duration_threshold_ms, duration_threshold_percent):
+    for value, name, upper in [(duration_threshold_ms, 'duration_threshold_ms', 604_800_000),
+                               (duration_threshold_percent, 'duration_threshold_percent', 10000)]:
+        if type(value) is not int or not 0 <= value <= upper:
+            raise ValueError(f'{name} must be an integer from 0 to {upper}')
+
+
+def compare(baseline, candidate, duration_threshold_ms=0, duration_threshold_percent=0):
+    validate_thresholds(duration_threshold_ms, duration_threshold_percent)
     validate(baseline)
     validate(candidate)
     old = {job['id']: job for job in baseline['jobs']}
@@ -73,7 +81,11 @@ def compare(baseline, candidate):
     counts = dict(added=0, removed=0, changed=0, unchanged=0, regressions=0, recoveries=0)
     for name in sorted(old.keys() | new.keys()):
         before, after = old.get(name), new.get(name)
-        change = 'added' if before is None else 'removed' if after is None else 'unchanged' if before == after else 'changed'
+        delta = after['duration_ms'] - before['duration_ms'] if before and after else None
+        significant = (abs(delta) > duration_threshold_ms and
+                       abs(delta) * 100 > before['duration_ms'] * duration_threshold_percent) if delta is not None else None
+        change = ('added' if before is None else 'removed' if after is None else
+                  'changed' if before['status'] != after['status'] or significant else 'unchanged')
         regression = before is not None and after is not None and before['status'] == 'passed' and after['status'] != 'passed'
         recovery = before is not None and after is not None and before['status'] != 'passed' and after['status'] == 'passed'
         counts[change] += 1
@@ -84,10 +96,15 @@ def compare(baseline, candidate):
                      'candidate_status': after['status'] if after else None,
                      'baseline_duration_ms': before['duration_ms'] if before else None,
                      'candidate_duration_ms': after['duration_ms'] if after else None,
-                     'duration_delta_ms': after['duration_ms'] - before['duration_ms'] if before and after else None,
+                     'duration_delta_ms': delta,
+                     'duration_change_exceeds_thresholds': significant,
+                     'duration_change_ignored': delta != 0 and not significant if delta is not None else None,
                      'status_regression': regression, 'status_recovery': recovery})
     return {'version': 1, 'baseline_run_id': baseline['run_id'], 'candidate_run_id': candidate['run_id'],
             'match': not any(counts[key] for key in ('added', 'removed', 'changed')),
+            'comparison_rules': {'duration_threshold_ms': duration_threshold_ms,
+                                 'duration_threshold_percent': duration_threshold_percent,
+                                 'duration_rule': 'absolute_delta_strictly_exceeds_both'},
             'summary': counts, 'jobs': jobs}
 
 
@@ -95,9 +112,15 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('baseline')
     parser.add_argument('candidate')
+    parser.add_argument('--duration-threshold-ms', type=int, default=0,
+                        help='Ignore timing deltas at or below this many ms (default 0)')
+    parser.add_argument('--duration-threshold-percent', type=int, default=0,
+                        help='Ignore timing deltas at or below this integer percent of baseline (default 0)')
     args = parser.parse_args(argv)
     try:
-        result = compare(load(args.baseline), load(args.candidate))
+        validate_thresholds(args.duration_threshold_ms, args.duration_threshold_percent)
+        result = compare(load(args.baseline), load(args.candidate),
+                         args.duration_threshold_ms, args.duration_threshold_percent)
     except (ValueError, OSError, RecursionError) as error:
         print(json.dumps({'error': str(error)}), file=sys.stderr)
         return 2
