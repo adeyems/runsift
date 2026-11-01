@@ -206,8 +206,31 @@ def save_profile(path, ms, percent):
         json.dump({'version': 1, 'duration_threshold_ms': ms, 'duration_threshold_percent': percent}, output, indent=2)
 
 
+def render_text(report):
+    """Plain text from validated identifiers; raw log excerpts never appear."""
+    lines = [f"RunSift: {report['baseline_run_id']} -> {report['candidate_run_id']}",
+             'MATCH' if report['match'] else 'DIFFERENT']
+    rules = report['comparison_rules']
+    lines.append(f"Duration thresholds: {rules['duration_threshold_ms']} ms and {rules['duration_threshold_percent']}% (both must be exceeded)")
+    for job in report['jobs']:
+        delta = job['duration_delta_ms']
+        timing = 'n/a' if delta is None else f'{delta:+d} ms'
+        if job['duration_change_ignored']:
+            timing += ' (within thresholds)'
+        lines.append(f"{job['id']}: {job['change']}; {job['baseline_status'] or 'absent'} -> {job['candidate_status'] or 'absent'}; duration {timing}")
+        tests = job['tests']
+        lines.append(f"  tests: {tests['state']}")
+        for case in tests['cases']:
+            if case['change'] != 'unchanged':
+                lines.append(f"  {case['id']}: {case['baseline_status'] or 'absent'} -> {case['candidate_status'] or 'absent'}")
+    for side, groups in report['failure_groups'].items():
+        lines.append(f"{side}: {len(groups['groups'])} exact-log failure groups; {len(groups['without_excerpt'])} failed jobs without excerpts")
+    return '\n'.join(lines)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--format', choices=('json', 'text'), default='json')
     parser.add_argument('baseline')
     parser.add_argument('candidate')
     parser.add_argument('--duration-threshold-ms', type=int, default=None,
@@ -235,7 +258,7 @@ def main(argv=None):
     except (ValueError, OSError, RecursionError) as error:
         print(json.dumps({'error': str(error)}), file=sys.stderr)
         return 2
-    print(json.dumps(result, indent=2))
+    print(render_text(result) if args.format == 'text' else json.dumps(result, indent=2))
     return 0 if result['match'] else 1
 
 

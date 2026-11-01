@@ -81,3 +81,7 @@ From this checkout, run `python3 -m pip install .` in a virtual environment. The
 ## Bounded synthetic failure excerpts
 
 Jobs may include a log_excerpt string of at most 4096 UTF-8 bytes, without terminal control characters (newline/tab allowed). Reports group failed jobs by the SHA-256 of exactly identical excerpts; missing or empty excerpts are reported separately. Excerpts are never executed, normalized or printed in reports. Same-text groups are not proof of the same root cause, and hashes are not anonymization. Log-only changes do not change the existing status/duration/test comparison result. Use synthetic excerpts only; bundle size remains capped at 2 MiB.
+
+## Readable text reports
+
+`runsift before.json after.json --format text` prints job status transitions, signed timing deltas, ignored timing changes and test coverage/change details. It also summarizes exact-log failure groups without printing log excerpts. JSON remains the default and contains the full structured report. Exit codes are unchanged (0 match, 1 differences, 2 invalid input); text rendering is intended for human review, not parsing. Local history and multi-run trends remain future work.
