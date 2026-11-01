@@ -1,5 +1,6 @@
 """Compare local synthetic CI-run bundles. Python 3.10+, standard library only."""
 import argparse
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -29,8 +30,8 @@ def validate(bundle):
     seen = set()
     total_tests = 0
     for job in bundle['jobs']:
-        if not isinstance(job, dict) or not {'id', 'status', 'duration_ms'} <= job.keys() or job.keys() - {'id', 'status', 'duration_ms', 'tests'}:
-            raise ValueError('Job requires id, status, duration_ms; optional tests')
+        if not isinstance(job, dict) or not {'id', 'status', 'duration_ms'} <= job.keys() or job.keys() - {'id', 'status', 'duration_ms', 'tests', 'log_excerpt'}:
+            raise ValueError('Job requires id, status, duration_ms; optional tests and log_excerpt')
         identifier(job['id'], 'Job id')
         if job['id'] in seen:
             raise ValueError('Duplicate job id')
@@ -40,6 +41,10 @@ def validate(bundle):
         duration = job['duration_ms']
         if type(duration) is not int or not 0 <= duration <= 604_800_000:
             raise ValueError('duration_ms must be an integer from 0 to 604800000 (7 days)')
+        if 'log_excerpt' in job:
+            excerpt = job['log_excerpt']
+            if not isinstance(excerpt, str) or len(excerpt.encode('utf-8')) > 4096 or any((ord(c) < 32 and c not in '\n\t') or 127 <= ord(c) <= 159 for c in excerpt):
+                raise ValueError('log_excerpt requires at most 4096 UTF-8 bytes without terminal control characters')
         if 'tests' in job:
             if not isinstance(job['tests'], list):
                 raise ValueError('tests must be a list when provided')
@@ -118,6 +123,22 @@ def compare_tests(before, after):
             'summary': counts, 'cases': cases}
 
 
+def failure_groups(bundle):
+    groups = {}
+    unavailable = []
+    for job in bundle['jobs']:
+        if job['status'] != 'failed':
+            continue
+        excerpt = job.get('log_excerpt')
+        if not excerpt:
+            unavailable.append(job['id'])
+            continue
+        fingerprint = hashlib.sha256(excerpt.encode('utf-8')).hexdigest()
+        groups.setdefault(fingerprint, []).append(job['id'])
+    return {'groups': [{'sha256': key, 'job_ids': sorted(ids)} for key, ids in sorted(groups.items())],
+            'without_excerpt': sorted(unavailable), 'method': 'exact_utf8_sha256'}
+
+
 def compare(baseline, candidate, duration_threshold_ms=0, duration_threshold_percent=0):
     validate_thresholds(duration_threshold_ms, duration_threshold_percent)
     validate(baseline)
@@ -155,7 +176,8 @@ def compare(baseline, candidate, duration_threshold_ms=0, duration_threshold_per
             'comparison_rules': {'duration_threshold_ms': duration_threshold_ms,
                                  'duration_threshold_percent': duration_threshold_percent,
                                  'duration_rule': 'absolute_delta_strictly_exceeds_both'},
-            'summary': counts, 'jobs': jobs}
+            'summary': counts, 'jobs': jobs,
+            'failure_groups': {'baseline': failure_groups(baseline), 'candidate': failure_groups(candidate)}}
 
 
 def load_profile(path):

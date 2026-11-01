@@ -17,3 +17,5 @@ Keep fixtures synthetic and local. Live CI integrations, account credentials and
 Completed follow-up: saved comparison profiles. See README for scope and remaining limitations.
 
 Completed packaging slice: installable wheel and console entry point with isolated installation checks in CI. Public package publication and broader release automation remain future work.
+
+Completed scoped milestone: bounded synthetic failure excerpts. See README for exact semantics and remaining limitations.

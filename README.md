@@ -77,3 +77,7 @@ Use `python3 runsift.py baseline.json candidate.json --duration-threshold-ms 50 
 ## Installable command
 
 From this checkout, run `python3 -m pip install .` in a virtual environment. Then use `runsift --help` from any directory. Python 3.10+ is required; the package has no runtime Python dependencies. This installs locally and does not publish to PyPI. Run `python3 tools/check_install.py` to build a wheel and verify installation in a fresh virtual environment. Building requires setuptools from the configured package index.
+
+## Bounded synthetic failure excerpts
+
+Jobs may include a log_excerpt string of at most 4096 UTF-8 bytes, without terminal control characters (newline/tab allowed). Reports group failed jobs by the SHA-256 of exactly identical excerpts; missing or empty excerpts are reported separately. Excerpts are never executed, normalized or printed in reports. Same-text groups are not proof of the same root cause, and hashes are not anonymization. Log-only changes do not change the existing status/duration/test comparison result. Use synthetic excerpts only; bundle size remains capped at 2 MiB.
