@@ -73,3 +73,7 @@ Any test membership/status change marks a matched job changed, even if its job s
 ## Saved comparison profiles
 
 Use `python3 runsift.py baseline.json candidate.json --duration-threshold-ms 50 --duration-threshold-percent 10 --save-profile timing.json` to save effective rules after input validation. Reuse them with `--profile timing.json`; explicit threshold flags cannot be combined with a profile. Existing files are never overwritten. Profiles require exactly integer version 1 and the two validated threshold fields, reject duplicate keys and are limited to 4 KiB. Reports continue to show effective comparison rules; normal comparison exit codes apply.
+
+## Installable command
+
+From this checkout, run `python3 -m pip install .` in a virtual environment. Then use `runsift --help` from any directory. Python 3.10+ is required; the package has no runtime Python dependencies. This installs locally and does not publish to PyPI. Run `python3 tools/check_install.py` to build a wheel and verify installation in a fresh virtual environment. Building requires setuptools from the configured package index.
