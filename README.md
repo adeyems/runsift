@@ -69,3 +69,7 @@ This exits 1: `checkout` becomes failed, `legacy` is removed and `replacement` i
 - `newly_failing` means a matched case changed from any non-failed state to failed. `recovered` means failed to passed; failed to skipped/cancelled is not recovery. Added failures remain visible but are not counted as transitions.
 
 Any test membership/status change marks a matched job changed, even if its job status and duration are identical. Duration thresholds never hide test changes. Top-level regressions/recoveries still count job-status transitions only; test counts are separate within each job. Skipped/cancelled cases show their actual statuses rather than being treated as passes. The tool does not infer or rewrite job status from test results: a passed job with a failed test may be a useful synthetic inconsistency to inspect.
+
+## Saved comparison profiles
+
+Use `python3 runsift.py baseline.json candidate.json --duration-threshold-ms 50 --duration-threshold-percent 10 --save-profile timing.json` to save effective rules after input validation. Reuse them with `--profile timing.json`; explicit threshold flags cannot be combined with a profile. Existing files are never overwritten. Profiles require exactly integer version 1 and the two validated threshold fields, reject duplicate keys and are limited to 4 KiB. Reports continue to show effective comparison rules; normal comparison exit codes apply.

@@ -158,19 +158,58 @@ def compare(baseline, candidate, duration_threshold_ms=0, duration_threshold_per
             'summary': counts, 'jobs': jobs}
 
 
+def load_profile(path):
+    with Path(path).open('rb') as source:
+        raw = source.read(4097)
+    if len(raw) > 4096:
+        raise ValueError('Profile exceeds 4 KiB')
+    def unique(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError('Duplicate profile key')
+            result[key] = value
+        return result
+    profile = json.loads(raw, object_pairs_hook=unique)
+    exact_fields(profile, ('version', 'duration_threshold_ms', 'duration_threshold_percent'), 'Profile')
+    if type(profile['version']) is not int or profile['version'] != 1:
+        raise ValueError('Unsupported profile version')
+    validate_thresholds(profile['duration_threshold_ms'], profile['duration_threshold_percent'])
+    return profile
+
+
+def save_profile(path, ms, percent):
+    validate_thresholds(ms, percent)
+    with Path(path).open('x', encoding='utf-8') as output:
+        json.dump({'version': 1, 'duration_threshold_ms': ms, 'duration_threshold_percent': percent}, output, indent=2)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('baseline')
     parser.add_argument('candidate')
-    parser.add_argument('--duration-threshold-ms', type=int, default=0,
+    parser.add_argument('--duration-threshold-ms', type=int, default=None,
                         help='Ignore timing deltas at or below this many ms (default 0)')
-    parser.add_argument('--duration-threshold-percent', type=int, default=0,
+    parser.add_argument('--duration-threshold-percent', type=int, default=None,
                         help='Ignore timing deltas at or below this integer percent of baseline (default 0)')
+    parser.add_argument('--profile', help='Load versioned duration settings; conflicts with explicit thresholds')
+    parser.add_argument('--save-profile', help='Save effective settings to a new file after validating inputs')
     args = parser.parse_args(argv)
     try:
+        if args.profile:
+            if args.duration_threshold_ms is not None or args.duration_threshold_percent is not None:
+                raise ValueError('Cannot combine profile with explicit thresholds')
+            settings = load_profile(args.profile)
+            args.duration_threshold_ms = settings['duration_threshold_ms']
+            args.duration_threshold_percent = settings['duration_threshold_percent']
+        else:
+            args.duration_threshold_ms = args.duration_threshold_ms or 0
+            args.duration_threshold_percent = args.duration_threshold_percent or 0
         validate_thresholds(args.duration_threshold_ms, args.duration_threshold_percent)
         result = compare(load(args.baseline), load(args.candidate),
                          args.duration_threshold_ms, args.duration_threshold_percent)
+        if args.save_profile:
+            save_profile(args.save_profile, args.duration_threshold_ms, args.duration_threshold_percent)
     except (ValueError, OSError, RecursionError) as error:
         print(json.dumps({'error': str(error)}), file=sys.stderr)
         return 2

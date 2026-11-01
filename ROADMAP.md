@@ -13,3 +13,5 @@ Remaining candidate work, to scope against genuine intended use before estimatin
 - Saved comparison profiles, readable reports, installation packaging and larger-workload checks.
 
 Keep fixtures synthetic and local. Live CI integrations, account credentials and production logs are outside the current milestone. This is ordinary software CI comparison, not AI-model evaluation or benchmarking. No estimate or task count here is a claim of programme eligibility.
+
+Completed follow-up: saved comparison profiles. See README for scope and remaining limitations.
