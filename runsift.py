@@ -206,6 +206,30 @@ def save_profile(path, ms, percent):
         json.dump({'version': 1, 'duration_threshold_ms': ms, 'duration_threshold_percent': percent}, output, indent=2)
 
 
+def trend(bundles):
+    """Ordered local observations, not an inference of flakiness or chronology."""
+    if not 2 <= len(bundles) <= 20:
+        raise ValueError('History requires 2–20 bundles in explicit oldest-to-newest order')
+    for bundle in bundles:
+        validate(bundle)
+    ids = [b['run_id'] for b in bundles]
+    if len(ids) != len(set(ids)):
+        raise ValueError('History run IDs must be distinct')
+    index = [{j['id']: j for j in b['jobs']} for b in bundles]
+    jobs = []
+    for name in sorted(set().union(*(j.keys() for j in index))):
+        observations = [run.get(name) for run in index]
+        states = [j['status'] if j else None for j in observations]
+        durations = [j['duration_ms'] for j in observations if j]
+        transitions = sum(a is not None and b is not None and a != b for a,b in zip(states, states[1:]))
+        jobs.append({'id': name, 'statuses': states, 'observed_runs': len(durations),
+                     'missing_runs': len(bundles)-len(durations), 'adjacent_status_changes': transitions,
+                     'failed_runs': states.count('failed'), 'duration_min_ms': min(durations),
+                     'duration_max_ms': max(durations)})
+    return {'version': 1, 'run_ids': ids, 'ordering': 'caller_supplied', 'jobs': jobs,
+            'scope': 'descriptive observations only; missing runs break transition counting; no flakiness verdict'}
+
+
 def render_text(report):
     """Plain text from validated identifiers; raw log excerpts never appear."""
     lines = [f"RunSift: {report['baseline_run_id']} -> {report['candidate_run_id']}",
@@ -229,6 +253,17 @@ def render_text(report):
 
 
 def main(argv=None):
+    argv = sys.argv[1:] if argv is None else argv
+    if argv and argv[0] == 'history':
+        try:
+            if not 2 <= len(argv[1:]) <= 20:
+                raise ValueError('History requires 2–20 bundle paths')
+            result = trend([load(path) for path in argv[1:]])
+        except (ValueError, OSError, RecursionError) as error:
+            print(json.dumps({'error': str(error)}), file=sys.stderr)
+            return 2
+        print(json.dumps(result, indent=2))
+        return 0
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--format', choices=('json', 'text'), default='json')
     parser.add_argument('baseline')

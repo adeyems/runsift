@@ -84,4 +84,8 @@ Jobs may include a log_excerpt string of at most 4096 UTF-8 bytes, without termi
 
 ## Readable text reports
 
-`runsift before.json after.json --format text` prints job status transitions, signed timing deltas, ignored timing changes and test coverage/change details. It also summarizes exact-log failure groups without printing log excerpts. JSON remains the default and contains the full structured report. Exit codes are unchanged (0 match, 1 differences, 2 invalid input); text rendering is intended for human review, not parsing. Local history and multi-run trends remain future work.
+`runsift before.json after.json --format text` prints job status transitions, signed timing deltas, ignored timing changes and test coverage/change details. It also summarizes exact-log failure groups without printing log excerpts. JSON remains the default and contains the full structured report. Exit codes are unchanged (0 match, 1 differences, 2 invalid input); text rendering is intended for human review, not parsing. Persistent history storage and richer multi-run analysis remain future work; ordered local summaries are described below.
+
+## Local ordered history summaries
+
+`runsift history OLDEST.json NEXT.json [MORE.json ...]` reads 2–20 existing local bundles with distinct run IDs, in the order supplied. It reports per-job status observations, missing runs, failure counts, observed duration ranges, and adjacent status changes. Missing jobs break transition counting. It does not infer timestamps, comparable workloads, a trend direction or flakiness. Successful history output exits 0 even if observations include failures; invalid input exits 2. Persistent history storage and richer trend analysis remain future work. `history` is a reserved first argument; use `./history` if a comparison input has that filename.
