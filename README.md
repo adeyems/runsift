@@ -93,3 +93,7 @@ Jobs may include a log_excerpt string of at most 4096 UTF-8 bytes, without termi
 ## Explicit local bundle archive
 
 `runsift archive INPUT.json EXISTING_DIRECTORY` validates a bundle and saves canonical UTF-8 JSON as RUN_ID.json in the chosen directory. The run ID cannot contain path separators; duplicate IDs/files are refused without overwrite. The encoded archive must remain within the 2 MiB input limit. It does not infer ordering or scan the directory: use explicit archive paths with `runsift history`. A storage failure may leave a partial new file; atomic publication, retention policies and automatic ingestion remain future work. `archive` is also reserved as the first CLI argument; use `./archive` to compare an input with that filename.
+
+## Maximum-workload regression coverage
+
+Automated coverage exercises the supported maximum of 1000 jobs and 10000 test cases through file loading and CLI comparison, verifies exact status/test-transition counts, and summarizes 20 runs with explicit coverage checks. Inputs just beyond either job/test bound are rejected. These are correctness/resource-boundary checks, not performance guarantees. The agreed core roadmap now has working foundations for comparison, log grouping, history/archive, profiles, readable reports and packaging. Broader history automation or live CI integration needs a separately chosen scope.

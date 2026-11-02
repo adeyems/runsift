@@ -25,3 +25,5 @@ Completed scoped follow-up: readable text reports. See README for acceptance sco
 Completed scoped follow-up: local ordered history summaries. See README for precise behavior and remaining work.
 
 Completed scoped follow-up: explicit local bundle archive. See README for limitations and remaining work.
+
+Completed scoped follow-up: maximum-workload regression coverage. See README for remaining limitations.
