@@ -89,3 +89,7 @@ Jobs may include a log_excerpt string of at most 4096 UTF-8 bytes, without termi
 ## Local ordered history summaries
 
 `runsift history OLDEST.json NEXT.json [MORE.json ...]` reads 2–20 existing local bundles with distinct run IDs, in the order supplied. It reports per-job status observations, missing runs, failure counts, observed duration ranges, and adjacent status changes. Missing jobs break transition counting. It does not infer timestamps, comparable workloads, a trend direction or flakiness. Successful history output exits 0 even if observations include failures; invalid input exits 2. Persistent history storage and richer trend analysis remain future work. `history` is a reserved first argument; use `./history` if a comparison input has that filename.
+
+## Explicit local bundle archive
+
+`runsift archive INPUT.json EXISTING_DIRECTORY` validates a bundle and saves canonical UTF-8 JSON as RUN_ID.json in the chosen directory. The run ID cannot contain path separators; duplicate IDs/files are refused without overwrite. The encoded archive must remain within the 2 MiB input limit. It does not infer ordering or scan the directory: use explicit archive paths with `runsift history`. A storage failure may leave a partial new file; atomic publication, retention policies and automatic ingestion remain future work. `archive` is also reserved as the first CLI argument; use `./archive` to compare an input with that filename.

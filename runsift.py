@@ -206,6 +206,18 @@ def save_profile(path, ms, percent):
         json.dump({'version': 1, 'duration_threshold_ms': ms, 'duration_threshold_percent': percent}, output, indent=2)
 
 
+def archive_bundle(source, directory):
+    bundle = load(source)
+    # run_id validation excludes separators; fixed suffix makes dot IDs harmless.
+    destination = Path(directory) / (bundle['run_id'] + '.json')
+    encoded = json.dumps(bundle, ensure_ascii=False, indent=2).encode('utf-8')
+    if len(encoded) > MAX_BYTES:
+        raise ValueError('Canonical archived bundle exceeds 2 MiB')
+    with destination.open('xb') as output:
+        output.write(encoded)
+    return destination
+
+
 def trend(bundles):
     """Ordered local observations, not an inference of flakiness or chronology."""
     if not 2 <= len(bundles) <= 20:
@@ -254,6 +266,16 @@ def render_text(report):
 
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else argv
+    if argv and argv[0] == 'archive':
+        try:
+            if len(argv) != 3:
+                raise ValueError('Usage: runsift archive BUNDLE.json EXISTING_DIRECTORY')
+            path = archive_bundle(argv[1], argv[2])
+        except (ValueError, OSError, RecursionError) as error:
+            print(json.dumps({'error': str(error)}), file=sys.stderr)
+            return 2
+        print(json.dumps({'archived': str(path)}))
+        return 0
     if argv and argv[0] == 'history':
         try:
             if not 2 <= len(argv[1:]) <= 20:

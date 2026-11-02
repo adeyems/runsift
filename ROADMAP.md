@@ -23,3 +23,5 @@ Completed scoped milestone: bounded synthetic failure excerpts. See README for e
 Completed scoped follow-up: readable text reports. See README for acceptance scope and remaining limitations.
 
 Completed scoped follow-up: local ordered history summaries. See README for precise behavior and remaining work.
+
+Completed scoped follow-up: explicit local bundle archive. See README for limitations and remaining work.
