@@ -27,3 +27,5 @@ Completed scoped follow-up: local ordered history summaries. See README for prec
 Completed scoped follow-up: explicit local bundle archive. See README for limitations and remaining work.
 
 Completed scoped follow-up: maximum-workload regression coverage. See README for remaining limitations.
+
+Completed archive reliability follow-up: atomic no-overwrite publication and handled-failure cleanup. No retention or automatic ingestion added.

@@ -2,6 +2,8 @@
 import argparse
 import hashlib
 import json
+import os
+import tempfile
 from pathlib import Path
 import re
 import sys
@@ -213,8 +215,18 @@ def archive_bundle(source, directory):
     encoded = json.dumps(bundle, ensure_ascii=False, indent=2).encode('utf-8')
     if len(encoded) > MAX_BYTES:
         raise ValueError('Canonical archived bundle exceeds 2 MiB')
-    with destination.open('xb') as output:
-        output.write(encoded)
+    staging = None
+    try:
+        with tempfile.NamedTemporaryFile(mode='wb', dir=directory,
+                                         prefix='.runsift-archive-', delete=False) as output:
+            staging = Path(output.name)
+            output.write(encoded)
+            output.flush()
+            os.fsync(output.fileno())
+        os.link(staging, destination)
+    finally:
+        if staging is not None:
+            staging.unlink(missing_ok=True)
     return destination
 
 
